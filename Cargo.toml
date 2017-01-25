@@ -1,0 +1,6 @@
+[package]
+authors = ["Enno Cramer <ecramer@memfrob.de>"]
+name = "lucifer"
+version = "0.1.0"
+description = "A physically based, offline renderer"
+homepage = "https://github.com/ennocramer/lucifer"

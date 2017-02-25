@@ -3,6 +3,8 @@
 Lucifer is a physically based renderer, written as a tutorial on how
 to implement raytracing and pathtracing in Rust.
 
+![example](example.png)
+
 Lucifer tries to showcase a very clean and easy-to-understand
 implementation of the basics of 3D rendering using raytracing.
 

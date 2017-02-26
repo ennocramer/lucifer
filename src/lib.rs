@@ -8,3 +8,4 @@ extern crate smallvec;
 pub mod camera;
 pub mod geometry;
 pub mod lighting;
+pub mod scene;

@@ -11,6 +11,7 @@ use clap::{App, Arg};
 use image::{Rgb, RgbImage};
 use std::path::Path;
 
+use lucifer::camera::*;
 use lucifer::geometry::*;
 
 fn to_pixel(color: Vector3<f32>) -> Rgb<u8> {
@@ -28,17 +29,6 @@ fn render<T: Geometry>(scene: &T, ray: &Ray) -> Vector3<f32> {
             color * brightness
         }
     }
-}
-
-fn primary(x: u32, y: u32, vp: &Matrix4<f32>) -> Ray {
-    let fx = (x as f32) / 255.0;
-    let fy = (y as f32) / 255.0;
-    let origin = Point::new(fx * 2.0 - 1.0, fy * 2.0 - 1.0, -1.0);
-    let direction = Vector::new(0.0, 0.0, 1.0);
-
-    let ray = Ray::new(origin, direction);
-
-    ray.transform(vp)
 }
 
 fn main() {
@@ -74,10 +64,13 @@ fn main() {
 
     let vp = proj.concat(&view).invert().unwrap();
 
+    let camera = AffineTransformCamera::new(vp);
+
     let scene = Sphere::new(Point::new(0.0, 0.0, 0.0), 1.0);
 
-    let img = RgbImage::from_fn(256, 256, |x, y| {
-        to_pixel(render(&scene, &primary(x, 255 - y, &vp)))
+    let res = Resolution::new(256, 256);
+    let img = RgbImage::from_fn(res.width, res.height, |x, y| {
+        to_pixel(render(&scene, &camera.primary(res, Target::new(x, y))))
     });
     img.save(&Path::new(output))
         .expect("Could not save to file");

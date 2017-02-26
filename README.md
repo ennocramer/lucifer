@@ -57,3 +57,65 @@ the surface was hit from the object's inside or outside.
 A `Geometry` is the abstraction of a physical shape. It provides
 methods for intersections tests between itself and `Ray`s.
 
+### Energy
+
+Light is represented using the `Radiance` structure, which models the
+radiant intensity of light coming from a given direction. Radiant
+intensity defines the color and brightness of light.
+
+The color of a surface is represented by `Albedo`.  An `Albedo` is a
+multiplicative factor for `Radiance`, with the assumption that any
+value is between zero and one.  I.e. an `Albedo` cannot increase
+`Radiance` and cannot turn `Radiance` negative.
+
+The appearance of a surface is modeled as a set of `Effect`s, each
+representing a specific type of interaction between light and the
+surface.  The set of `Effect`s is called `Bsdf`.
+
+Each effect is composed of an effect type, a `Distribution`, and some
+combination of `Radiance`, `Albedo`, and `Ior`.  There are five
+different effects:
+
+  1. **Emission** is light emitted by a surface, independently of
+     incoming light. This is the primary `Effect` for light sources.
+
+     Emission is defined by a `Radiance` value and a distribution
+     function.
+
+  2. **Diffuse Reflection** is light scattered by the surface.  This
+     is the primary `Effect` for rough surfaces.
+
+     Diffuse reflection is defined by an `Albedo` value and a
+     distribution function.  The `Distribution` is centered on the
+     surface normal
+
+  3. **Specular Reflection** is light reflected by the surface.  This
+     is the primary `Effect` for shiny surfaces and mirrors.
+
+     Specular reflection is defined by an `Albedo` value and a
+     distribution function.  The `Distribution` is centered on the
+     reflected incidence direction.
+
+  4. **Diffuse Refraction** is light transmitted, but scattered by the
+     surface. This is the primary `Effect` for light-transmitting, but
+     non-transparent objects.
+
+     Diffuse refraction is defined by an `Albedo` value and a
+     distribution function. The `Distribution` is centered on the
+     mirrored surface normal.
+
+  5. **Specular Refraction** is light transmitted and refracted by the
+     surface. This is the primary `Effect` for clear, transparent
+     objects.
+
+     Specular refraction can turn into reflection, if the angle of
+     incidence is low.
+
+     Specular refraction is defined by an `Albedo` and `Ior` value and
+     a distribution function.  The `Distribution` is centered on the
+     refracted incidence direction.
+
+The `Material` trait is responsible to compute the surface's
+appearance at the point of intersection.  The generated set of
+`Effect`s and their attributes can vary depending on the attributes of
+the `Intersection`.

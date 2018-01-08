@@ -1,8 +1,10 @@
 //! Materials and quantities of light and color
 
+use std::f32::consts::PI;
 use std::ops::{Mul, MulAssign};
 
 use cgmath::{dot, vec3, ElementWise, One, Vector3, Zero};
+use rand::Rng;
 use smallvec::SmallVec;
 
 use geometry::Intersection;
@@ -265,6 +267,54 @@ impl Distribution {
             Distribution::Uniform => 1.0 / cos_t,
             Distribution::Cosine => 1.0,
             Distribution::CosineExp(e) => cos_t.powf(e - 1.0),
+        }
+    }
+
+    /// Randomly sample a vector in the hemisphere around `+z`.
+    ///
+    /// Returns a unit-vector, randomly sampled from the hemisphere
+    /// around `+z` according to the given `Distribution` and the
+    /// value of the probability density function (pdf) for the returned
+    /// sample.
+    pub fn sample<R: Rng>(self, rng: &mut R) -> (Vector3<f32>, f32) {
+        match self {
+            Distribution::Dirac => (vec3(0.0, 0.0, 1.0), 0.5 / PI),
+            Distribution::Uniform => {
+                let x: f32 = rng.gen();
+                let y: f32 = rng.gen();
+
+                let phi = x * 2.0 * PI;
+                let cos_theta = 1.0 - y;
+                let r = (1.0 - cos_theta * cos_theta).sqrt();
+
+                (vec3(r * phi.cos(), r * phi.sin(), cos_theta), 0.5 / PI)
+            }
+            Distribution::Cosine => {
+                let x: f32 = rng.gen();
+                let y: f32 = rng.gen();
+
+                let phi = x * 2.0 * PI;
+                let cos_theta = (1.0 - y).sqrt();
+                let r = (1.0 - cos_theta * cos_theta).sqrt();
+
+                (
+                    vec3(r * phi.cos(), r * phi.sin(), cos_theta),
+                    cos_theta / PI,
+                )
+            }
+            Distribution::CosineExp(e) => {
+                let x: f32 = rng.gen();
+                let y: f32 = rng.gen();
+
+                let phi = x * 2.0 * PI;
+                let cos_theta = (1.0 - y).powf(1.0 / (e + 1.0));
+                let r = (1.0 - cos_theta * cos_theta).sqrt();
+
+                (
+                    vec3(r * phi.cos(), r * phi.cos(), cos_theta),
+                    (e + 1.0) * cos_theta.powf(e) / PI,
+                )
+            }
         }
     }
 }

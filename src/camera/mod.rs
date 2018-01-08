@@ -3,8 +3,10 @@
 use geometry::Ray;
 
 pub mod affine;
+pub mod tonemap;
 
 pub use self::affine::AffineTransformCamera;
+pub use self::tonemap::Tonemap;
 
 /// A pair of `u32` representing the resolution of an image.
 #[derive(Clone, Copy, Debug)]

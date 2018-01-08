@@ -1,6 +1,7 @@
 extern crate cgmath;
 extern crate clap;
 extern crate image;
+extern crate rand;
 
 extern crate lucifer;
 
@@ -9,12 +10,12 @@ use cgmath::prelude::*;
 use cgmath::{Deg, Matrix4, PerspectiveFov, Rad, Vector3};
 use clap::{App, Arg};
 use image::{Rgb, RgbImage};
+use rand::{SeedableRng, XorShiftRng};
 use std::path::Path;
 
 use lucifer::camera::*;
 use lucifer::geometry::*;
 use lucifer::lighting::*;
-use lucifer::render::ray::Light;
 use lucifer::render::*;
 use lucifer::scene::*;
 
@@ -23,9 +24,9 @@ fn to_rgb(color: Vector3<f32>) -> Rgb<u8> {
         .map(|c| (clamp(c, 0.0, 1.0) * 255.0).round() as u8)
         .into())
 }
-
-fn to_pixel(radiance: Radiance) -> Rgb<u8> {
-    to_rgb(radiance.into())
+fn to_pixel(radiance: Radiance, exposure: f32, tonemap: &Tonemap) -> Rgb<u8> {
+    let v: Vector = radiance.into();
+    to_rgb(v.map(|c| tonemap.apply(c * exposure)))
 }
 
 fn main() {
@@ -64,7 +65,7 @@ fn main() {
     let white = Lambert::new(Albedo::new(0.725, 0.71, 0.68));
     let red = Lambert::new(Albedo::new(0.63, 0.065, 0.05));
     let green = Lambert::new(Albedo::new(0.14, 0.45, 0.091));
-    let glow = Blackbody::new(Radiance::gray(1.0));
+    let glow = Blackbody::new(Radiance::new(17.0, 12.0, 4.0));
 
     let mut scene = Scene::new(Radiance::none());
     scene.add(Object::new(
@@ -105,27 +106,19 @@ fn main() {
             .concat(&Matrix4::from_angle_y(Deg(160.0))),
     ));
     scene.add(Object::new(
-        Cube::new(
-            Point::new(-0.05, 1.98, 0.03),
-            Vector::new(0.94, 0.02, 0.76),
-        ),
+        Cube::new(Point::new(-0.05, 1.98, 0.03), Vector::new(0.94, 0.02, 0.76)),
         glow.clone(),
         Matrix4::identity(),
     ));
 
-    let light = Light {
-        position: Point::new(-0.05, 1.96, 0.03),
-        emission: Radiance::gray(30.0),
-        radius: 0.4,
-    };
-    let mut renderer = RayTracer::new(light);
+    let mut renderer = PathTracer::new(XorShiftRng::from_seed([0; 16]), 0.01, 8, 512);
 
     let res = Resolution::new(256, 256);
     let mut img = RgbImage::new(res.width, res.height);
     for y in 0..res.height {
         for x in 0..res.width {
             let radiance = renderer.render(&scene, &camera, res, Target::new(x, y));
-            img.put_pixel(x, y, to_pixel(radiance));
+            img.put_pixel(x, y, to_pixel(radiance, 1.0, &Tonemap::Filmic));
         }
     }
     img.save(&Path::new(output))

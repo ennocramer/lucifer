@@ -6,7 +6,7 @@ extern crate lucifer;
 
 use cgmath::num_traits::clamp;
 use cgmath::prelude::*;
-use cgmath::{dot, Deg, Matrix4, PerspectiveFov, Rad, Vector3};
+use cgmath::{Deg, Matrix4, PerspectiveFov, Rad, Vector3};
 use clap::{App, Arg};
 use image::{Rgb, RgbImage};
 use std::path::Path;
@@ -14,6 +14,7 @@ use std::path::Path;
 use lucifer::camera::*;
 use lucifer::geometry::*;
 use lucifer::lighting::*;
+use lucifer::render::*;
 use lucifer::scene::*;
 
 fn to_rgb(color: Vector3<f32>) -> Rgb<u8> {
@@ -24,38 +25,6 @@ fn to_rgb(color: Vector3<f32>) -> Rgb<u8> {
 
 fn to_pixel(radiance: Radiance) -> Rgb<u8> {
     to_rgb(radiance.into())
-}
-
-fn shade(intersection: &Intersection, bsdf: &Bsdf) -> Radiance {
-    let light = Point::new(-1.0, 1.0, 1.0);
-    let emission = Radiance::gray(1.0);
-    let incidence = (light - intersection.position).normalize();
-    let cos_t_normal = dot(incidence, intersection.normal);
-
-    let mut radiance = Radiance::none();
-
-    for effect in &bsdf.effects {
-        match *effect {
-            Effect::Emission(emission, _) => radiance += emission,
-            Effect::DiffuseReflection(albedo, pdf) => {
-                if cos_t_normal > 0.0 {
-                    radiance += cos_t_normal * emission * albedo * pdf.eval(cos_t_normal)
-                }
-            }
-            Effect::SpecularReflection(_, _)
-            | Effect::DiffuseRefraction(_, _, _)
-            | Effect::SpecularRefraction(_, _, _) => unimplemented!(),
-        }
-    }
-
-    radiance
-}
-
-fn render(scene: &Scene, ray: &Ray) -> Radiance {
-    match scene.intersect(ray) {
-        None => scene.background(),
-        Some(i) => shade(&i.intersection, &i.bsdf),
-    }
 }
 
 fn main() {
@@ -143,13 +112,16 @@ fn main() {
         Matrix4::identity(),
     ));
 
+    let mut renderer = DebugRenderer::new();
+
     let res = Resolution::new(256, 256);
-    let img = RgbImage::from_fn(res.width, res.height, |x, y| {
-        to_pixel(render(
-            &scene,
-            &camera.primary(res, Target::new(x, y)),
-        ))
-    });
+    let mut img = RgbImage::new(res.width, res.height);
+    for y in 0..res.height {
+        for x in 0..res.width {
+            let radiance = renderer.render(&scene, &camera, res, Target::new(x, y));
+            img.put_pixel(x, y, to_pixel(radiance));
+        }
+    }
     img.save(&Path::new(output))
         .expect("Could not save to file");
 }

@@ -14,6 +14,7 @@ use std::path::Path;
 use lucifer::camera::*;
 use lucifer::geometry::*;
 use lucifer::lighting::*;
+use lucifer::render::ray::Light;
 use lucifer::render::*;
 use lucifer::scene::*;
 
@@ -112,7 +113,12 @@ fn main() {
         Matrix4::identity(),
     ));
 
-    let mut renderer = DebugRenderer::new();
+    let light = Light {
+        position: Point::new(-0.05, 1.96, 0.03),
+        emission: Radiance::gray(30.0),
+        radius: 0.4,
+    };
+    let mut renderer = RayTracer::new(light);
 
     let res = Resolution::new(256, 256);
     let mut img = RgbImage::new(res.width, res.height);

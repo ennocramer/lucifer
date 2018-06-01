@@ -3,8 +3,10 @@ use lighting::Radiance;
 use scene::Scene;
 
 pub mod debug;
+pub mod ray;
 
 pub use self::debug::DebugRenderer;
+pub use self::ray::RayTracer;
 
 pub trait Renderer {
     fn render(
